@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SpeedReader</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#111827;
+    --panel2:#0f1624;
+    --text:#e7eef8;
+    --muted:#9bb0c9;
+    --border:rgba(255,255,255,0.14);
+    --border2:rgba(255,255,255,0.20);
+    --red:#ff3b3b;
+  }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    display:grid;
+    place-items:center;
+    min-height:100vh;
+    padding:18px;
+  }
+
+  .app{
+    width: 940px;
+    max-width: 96%;
+    background: linear-gradient(180deg, rgba(17,24,39,0.92), rgba(17,24,39,0.78));
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:16px;
+  }
+
+  .top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+
+  .brand{
+    font-weight:800;
+    letter-spacing:0.2px;
+    font-size:14px;
+    user-select:none;
+  }
+  .brand .red{ color:var(--red); }
+
+  .controls{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .speed{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  button{
+    height:40px;
+    border-radius:12px;
+    padding:0 12px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,0.06);
+    color:var(--text);
+    cursor:pointer;
+    font-size:14px;
+    line-height:40px;
+    user-select:none;
+  }
+
+  button:hover{ border-color: rgba(255,255,255,0.28); }
+  button:disabled{ opacity:0.45; cursor:not-allowed; }
+
+  .speed button.active{
+    background:rgba(255,255,255,0.14);
+    border-color:rgba(255,255,255,0.26);
+  }
+
+  .primary{
+    background: rgba(255,59,59,0.12);
+    border-color: rgba(255,59,59,0.30);
+  }
+
+  .drop{
+    border:2px dashed var(--border2);
+    border-radius:14px;
+    padding:18px;
+    text-align:center;
+    cursor:pointer;
+    background: rgba(0,0,0,0.10);
+  }
+
+  .drop .t{
+    font-weight:750;
+    color:var(--text);
+  }
+  .drop .s{
+    margin-top:6px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .drop .fn{
+    margin-top:8px;
+    font-size:12px;
+    color:var(--muted);
+    word-break:break-word;
+  }
+
+  .reader{
+    margin-top:14px;
+    height: 280px;
+    border-radius:14px;
+    background: rgba(0,0,0,0.25);
+    border:1px solid rgba(255,255,255,0.10);
+    display:grid;
+    place-items:center;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .guide{
+    position:absolute;
+    width:2px;
+    height:150px;
+    background:rgba(255,255,255,0.14);
+    border-radius:999px;
+  }
+
+  .word{
+    font-size: clamp(40px, 6vw, 74px);
+    font-weight: 850;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    padding: 0 10px;
+    user-select:none;
+  }
+
+  .orp{ color: var(--red); }
+
+  .status{
+    margin-top:10px;
+    color:var(--muted);
+    font-size:12px;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  input{ display:none; }
+</style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="top">
+      <div class="brand"><span class="red">Speed</span>Reader</div>
+
+      <div class="controls">
+        <div class="speed" aria-label="Speed">
+          <button data-wpm="250" type="button">250 WPM</button>
+          <button data-wpm="400" class="active" type="button">400 WPM</button>
+          <button data-wpm="900" type="button">900 WPM</button>
+        </div>
+
+        <button id="playPause" class="primary" type="button" disabled>Play</button>
+        <button id="reset" type="button" disabled>Reset</button>
+      </div>
+    </div>
+
+    <div class="drop" id="drop" role="button" tabindex="0" aria-label="Upload PDF">
+      <div class="t">Upload PDF here</div>
+      <div class="s">Click or drag & drop</div>
+      <div class="fn" id="fileName"></div>
+    </div>
+    <input type="file" id="file" accept="application/pdf">
+
+    <div class="reader">
+      <div class="guide"></div>
+      <div class="word" id="word">—</div>
+    </div>
+
+    <div class="status">
+      <div id="left">No PDF loaded.</div>
+      <div id="right"></div>
+    </div>
+  </div>
+
+  <!-- Stable PDF.js UMD build -->
+  <script src="https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+
+  <script>
+    // Disable worker for maximum “just works” reliability in this prototype.
+    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
+
+    const drop = document.getElementById("drop");
+    const fileInput = document.getElementById("file");
+    const fileNameEl = document.getElementById("fileName");
+
+    const wordEl = document.getElementById("word");
+    const leftEl = document.getElementById("left");
+    const rightEl = document.getElementById("right");
+
+    const playPauseBtn = document.getElementById("playPause");
+    const resetBtn = document.getElementById("reset");
+
+    const speedBtns = Array.from(document.querySelectorAll(".speed button"));
+
+    let words = [];
+    let idx = 0;
+    let wpm = 400;
+    let timer = null;
+    let playing = false;
+
+    function msPerWord(){ return 60000 / wpm; }
+
+    function tokenize(text){
+      return text.split(/\s+/).filter(Boolean);
+    }
+
+    // ORP: most centered letter
+    function centerIndex(len){
+      return Math.floor((len - 1) / 2);
+    }
+
+    function splitPunctuation(raw){
+      const m = raw.match(/^([("'\[{<]*)(.*?)([)\\"'\]}>,.!?:;]*)$/);
+      if (!m) return { lead:"", core:raw, tail:"" };
+      return { lead:m[1]||"", core:m[2]||"", tail:m[3]||"" };
+    }
+
+    function escapeHtml(s){
+      return s
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function renderWord(raw){
+      if (!raw){ wordEl.textContent = "—"; return; }
+
+      const {lead, core, tail} = splitPunctuation(raw);
+      if (!core){ wordEl.textContent = raw; return; }
+
+      const i = centerIndex(core.length);
+      const before = core.slice(0,i);
+      const mid = core[i];
+      const after = core.slice(i+1);
+
+      wordEl.innerHTML =
+        `${escapeHtml(lead)}${escapeHtml(before)}<span class="orp">${escapeHtml(mid)}</span>${escapeHtml(after)}${escapeHtml(tail)}`;
+    }
+
+    function updateStatus(){
+      if (!words.length){
+        leftEl.textContent = "No PDF loaded.";
+        rightEl.textContent = "";
+        return;
+      }
+      leftEl.textContent = `Loaded: ${words.length.toLocaleString()} words`;
+      rightEl.textContent = `${Math.min(idx, words.length).toLocaleString()}/${words.length.toLocaleString()}`;
+    }
+
+    function stop(){
+      playing = false;
+      playPauseBtn.textContent = "Play";
+      if (timer){ clearTimeout(timer); timer = null; }
+    }
+
+    function scheduleNext(){
+      if (!playing) return;
+
+      if (idx >= words.length){
+        stop();
+        renderWord("Done.");
+        return;
+      }
+
+      renderWord(words[idx]);
+      idx++;
+      updateStatus();
+
+      timer = setTimeout(scheduleNext, msPerWord());
+    }
+
+    function play(){
+      if (!words.length) return;
+      playing = true;
+      playPauseBtn.textContent = "Pause";
+      if (timer){ clearTimeout(timer); timer = null; }
+      scheduleNext();
+    }
+
+    function togglePlayPause(){
+      if (!words.length) return;
+      if (playing) stop();
+      else play();
+    }
+
+    function reset(){
+      stop();
+      idx = 0;
+      renderWord(words[0] || "—");
+      updateStatus();
+    }
+
+    // Upload
+    drop.onclick = () => fileInput.click();
+    drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") fileInput.click(); };
+
+    drop.ondragover = (e) => { e.preventDefault(); };
+    drop.ondrop = (e) => {
+      e.preventDefault();
+      const f = e.dataTransfer.files?.[0];
+      if (f && f.type === "application/pdf") loadPdf(f);
+    };
+
+    fileInput.onchange = () => {
+      const f = fileInput.files?.[0];
+      if (f) loadPdf(f);
+      fileInput.value = "";
+    };
+
+    async function loadPdf(file){
+      stop();
+      renderWord("…");
+      leftEl.textContent = "Reading PDF…";
+      rightEl.textContent = "";
+
+      fileNameEl.textContent = file.name;
+
+      try{
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+
+        let text = "";
+        for (let p = 1; p <= pdf.numPages; p++){
+          const page = await pdf.getPage(p);
+          const c = await page.getTextContent();
+          text += c.items.map(x => x.str).join(" ") + " ";
+        }
+
+        words = tokenize(text);
+        idx = 0;
+
+        if (!words.length){
+          renderWord("No text found.");
+          leftEl.textContent = "No extractable text found in this PDF.";
+          rightEl.textContent = "If scanned, OCR is required.";
+          playPauseBtn.disabled = true;
+          resetBtn.disabled = true;
+          return;
+        }
+
+        renderWord(words[0]);
+        updateStatus();
+        playPauseBtn.disabled = false;
+        resetBtn.disabled = false;
+
+      } catch (err){
+        console.error(err);
+        renderWord("Error.");
+        leftEl.textContent = "Failed to read PDF.";
+        rightEl.textContent = "See console.";
+        playPauseBtn.disabled = true;
+        resetBtn.disabled = true;
+      }
+    }
+
+    // Speed controls
+    speedBtns.forEach(btn => {
+      btn.onclick = () => {
+        speedBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        wpm = Number(btn.dataset.wpm);
+
+        // Apply immediately while playing
+        if (playing){
+          if (timer){ clearTimeout(timer); timer = null; }
+          scheduleNext();
+        }
+      };
+    });
+
+    playPauseBtn.onclick = togglePlayPause;
+    resetBtn.onclick = reset;
+
+    renderWord("—");
+    updateStatus();
+  </script>
+</body>
+</html>
