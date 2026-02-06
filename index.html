@@ -981,33 +981,35 @@
       vrProgressLabel.textContent = pct + "%";
     }
 
-    // ── Speech controls ──
-    vrPlayBtn.onclick = () => {
-      if (vrIsSpeaking && !vrIsPaused) return;
-      if (vrIsPaused) {
-        speechSynthesis.resume();
-        vrIsPaused = false;
-        vrPauseResumeBtn.textContent = "Pause";
-        return;
-      }
+    // ── Chunked speech (Chrome silently fails on long text) ──
+    let vrChunks = [];
+    let vrChunkIndex = 0;
+    let vrChunkCharOffset = 0; // tracks character offset into full text
 
-      const voice = getSelectedVoice();
-      if (!voice || !vrText) return;
-
-      speechSynthesis.cancel();
-
-      vrUtterance = new SpeechSynthesisUtterance(vrText);
-      vrUtterance.voice = voice;
-      vrUtterance.rate = parseFloat(vrSpeedSelect.value);
-
-      vrUtterance.onboundary = (e) => {
-        if (e.name === 'word') {
-          vrCurrentCharIndex = e.charIndex;
-          vrRenderText(e.charIndex);
+    function splitIntoChunks(text, maxLen) {
+      const chunks = [];
+      let start = 0;
+      while (start < text.length) {
+        let end = Math.min(start + maxLen, text.length);
+        // Try to break at sentence boundary
+        if (end < text.length) {
+          const slice = text.slice(start, end);
+          const lastPeriod = slice.lastIndexOf('. ');
+          const lastQuestion = slice.lastIndexOf('? ');
+          const lastExclaim = slice.lastIndexOf('! ');
+          const best = Math.max(lastPeriod, lastQuestion, lastExclaim);
+          if (best > maxLen * 0.3) {
+            end = start + best + 2;
+          }
         }
-      };
+        chunks.push({ text: text.slice(start, end), offset: start });
+        start = end;
+      }
+      return chunks;
+    }
 
-      vrUtterance.onend = () => {
+    function vrSpeakChunk() {
+      if (vrChunkIndex >= vrChunks.length) {
         vrIsSpeaking = false;
         vrIsPaused = false;
         vrPlayBtn.textContent = "Play";
@@ -1017,16 +1019,61 @@
         vrProgressFill.style.width = "100%";
         vrProgressLabel.textContent = "100%";
         vrRightEl.textContent = "Done.";
+        return;
+      }
+
+      const chunk = vrChunks[vrChunkIndex];
+      vrChunkCharOffset = chunk.offset;
+
+      vrUtterance = new SpeechSynthesisUtterance(chunk.text);
+      vrUtterance.voice = getSelectedVoice();
+      vrUtterance.rate = parseFloat(vrSpeedSelect.value);
+
+      vrUtterance.onboundary = (e) => {
+        if (e.name === 'word') {
+          const globalIndex = vrChunkCharOffset + e.charIndex;
+          vrCurrentCharIndex = globalIndex;
+          vrRenderText(globalIndex);
+        }
+      };
+
+      vrUtterance.onend = () => {
+        vrChunkIndex++;
+        if (vrIsSpeaking && !vrIsPaused) {
+          vrSpeakChunk();
+        }
       };
 
       vrUtterance.onerror = (e) => {
-        if (e.error === 'canceled') return; // Normal on stop/cancel
+        if (e.error === 'canceled') return;
         console.error("Speech error:", e);
         vrRightEl.textContent = "Speech error. See console.";
         vrIsSpeaking = false;
       };
 
       speechSynthesis.speak(vrUtterance);
+    }
+
+    // ── Speech controls ──
+    vrPlayBtn.onclick = () => {
+      if (vrIsSpeaking && !vrIsPaused) return;
+      if (vrIsPaused) {
+        speechSynthesis.resume();
+        vrIsPaused = false;
+        vrPauseResumeBtn.textContent = "Pause";
+        vrPlayBtn.textContent = "Playing…";
+        return;
+      }
+
+      const voice = getSelectedVoice();
+      if (!voice || !vrText) return;
+
+      speechSynthesis.cancel();
+
+      // Split text into ~2000 char chunks at sentence boundaries
+      vrChunks = splitIntoChunks(vrText, 2000);
+      vrChunkIndex = 0;
+
       vrIsSpeaking = true;
       vrIsPaused = false;
       vrPlayBtn.textContent = "Playing…";
@@ -1034,6 +1081,8 @@
       vrPauseResumeBtn.disabled = false;
       vrStopBtn.disabled = false;
       vrRightEl.textContent = "";
+
+      vrSpeakChunk();
     };
 
     vrPauseResumeBtn.onclick = () => {
@@ -1055,6 +1104,8 @@
       speechSynthesis.cancel();
       vrIsSpeaking = false;
       vrIsPaused = false;
+      vrChunks = [];
+      vrChunkIndex = 0;
       vrPlayBtn.textContent = "Play";
       vrPlayBtn.disabled = false;
       vrPauseResumeBtn.disabled = true;
