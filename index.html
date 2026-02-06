@@ -5,6 +5,27 @@
 <title>SpeedReader</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- ============================================================
+     GOOGLE ADSENSE — STEP-BY-STEP SETUP
+     ============================================================
+     1. Go to https://adsense.google.com and sign in / sign up.
+     2. Add your site URL and wait for approval (days → weeks).
+     3. Once approved, copy your Publisher ID (looks like: ca-pub-1234567890123456).
+     4. Replace EVERY occurrence of "ca-pub-3128443998439992" in this
+        file with your real Publisher ID.
+     5. Each <ins class="adsbygoogle"> block is one ad unit.  After
+        approval, you can also replace the data-ad-slot values with
+        specific ad-unit IDs from your AdSense dashboard for finer
+        control (optional — the auto-ads script handles it too).
+     6. The async AdSense script below loads Google's ad code.
+        It is safe to leave it in even before approval; it simply
+        won't serve ads until your account is active.
+     ============================================================ -->
+
+<!-- Google AdSense script — replace ca-pub-3128443998439992 with your real ID -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3128443998439992"
+  crossorigin="anonymous"></script>
+
 <style>
   :root{
     --bg:#0b0f14;
@@ -17,17 +38,70 @@
     --red:#ff3b3b;
   }
 
+  *,*::before,*::after{box-sizing:border-box;}
+
   body{
     margin:0;
     background:var(--bg);
     color:var(--text);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    display:grid;
-    place-items:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
     min-height:100vh;
-    padding:18px;
+    padding:0;
   }
 
+  /* ── Ad banner containers ── */
+  .ad-banner{
+    width:100%;
+    overflow:hidden;
+    background:rgba(17,24,39,0.60);
+    border-bottom:1px solid var(--border);
+    position:relative;
+    min-height:100px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .ad-banner.bottom{
+    border-bottom:none;
+    border-top:1px solid var(--border);
+    margin-top:auto;
+  }
+
+  /* Placeholder shown before AdSense is live */
+  .ad-placeholder{
+    color:var(--muted);
+    font-size:12px;
+    text-align:center;
+    padding:8px 16px;
+    opacity:0.6;
+  }
+
+  /* Scrolling wrapper for the ad marquee effect */
+  .ad-scroll{
+    display:flex;
+    animation: adScroll 30s linear infinite;
+    white-space:nowrap;
+  }
+  .ad-scroll:hover{ animation-play-state:paused; }
+
+  @keyframes adScroll{
+    0%  { transform:translateX(0); }
+    100%{ transform:translateX(-50%); }
+  }
+
+  .ad-scroll-item{
+    flex:0 0 auto;
+    padding:0 40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:300px;
+  }
+
+  /* ── Main app ── */
   .app{
     width: 940px;
     max-width: 96%;
@@ -35,8 +109,47 @@
     border:1px solid var(--border);
     border-radius:18px;
     padding:16px;
+    margin:18px 0;
   }
 
+  /* ── Navigation tabs ── */
+  .nav{
+    display:flex;
+    gap:4px;
+    margin-bottom:14px;
+    background:rgba(0,0,0,0.25);
+    border-radius:12px;
+    padding:4px;
+  }
+  .nav-tab{
+    flex:1;
+    height:42px;
+    border:none;
+    border-radius:10px;
+    background:transparent;
+    color:var(--muted);
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    transition:background 0.2s, color 0.2s;
+    line-height:42px;
+    padding:0;
+  }
+  .nav-tab:hover{
+    color:var(--text);
+    border:none;
+  }
+  .nav-tab.active{
+    background:rgba(255,255,255,0.10);
+    color:var(--text);
+    border:none;
+  }
+
+  /* ── Page visibility ── */
+  .page{ display:none; }
+  .page.active{ display:block; }
+
+  /* ── Shared controls ── */
   .top{
     display:flex;
     justify-content:space-between;
@@ -159,42 +272,252 @@
     flex-wrap:wrap;
   }
 
-  input{ display:none; }
+  input[type="file"]{ display:none; }
+
+  /* ── VoiceReader styles ── */
+  .vr-settings{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:end;
+    margin-top:14px;
+  }
+
+  .vr-field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    flex:1;
+    min-width:160px;
+  }
+
+  .vr-field label{
+    font-size:12px;
+    color:var(--muted);
+    font-weight:600;
+  }
+
+  .vr-field select{
+    height:40px;
+    border-radius:12px;
+    padding:0 10px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,0.06);
+    color:var(--text);
+    font-size:14px;
+    cursor:pointer;
+    appearance:auto;
+  }
+
+  .vr-controls{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+
+  .vr-text-area{
+    margin-top:14px;
+    min-height:200px;
+    max-height:400px;
+    border-radius:14px;
+    background: rgba(0,0,0,0.25);
+    border:1px solid rgba(255,255,255,0.10);
+    padding:16px;
+    overflow-y:auto;
+    font-size:15px;
+    line-height:1.7;
+    color:var(--text);
+  }
+
+  .vr-text-area .spoken{
+    color:var(--muted);
+  }
+  .vr-text-area .current-word{
+    color:var(--red);
+    font-weight:700;
+  }
+
+  .vr-text-area .empty-msg{
+    color:var(--muted);
+    font-style:italic;
+  }
+
+  .vr-progress{
+    margin-top:10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--muted);
+    font-size:12px;
+  }
+
+  .vr-progress-bar{
+    flex:1;
+    height:6px;
+    border-radius:3px;
+    background:rgba(255,255,255,0.08);
+    overflow:hidden;
+  }
+
+  .vr-progress-fill{
+    height:100%;
+    background:var(--red);
+    border-radius:3px;
+    transition:width 0.3s;
+    width:0%;
+  }
 </style>
 </head>
 
 <body>
+
+  <!-- ═══ TOP AD BANNER ═══ -->
+  <div class="ad-banner top">
+    <!-- AdSense responsive ad unit (top) -->
+    <ins class="adsbygoogle"
+      style="display:block;width:100%;min-height:90px"
+      data-ad-client="ca-pub-3128443998439992"
+      data-ad-slot="TOP_AD_SLOT_ID"
+      data-ad-format="horizontal"
+      data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+    <!-- Placeholder shown when ads aren't loaded yet -->
+    <div class="ad-placeholder" id="adPlaceholderTop">
+      <div class="ad-scroll">
+        <div class="ad-scroll-item">Ad Space — Google AdSense</div>
+        <div class="ad-scroll-item">Your ad could appear here</div>
+        <div class="ad-scroll-item">Ads will appear here once your AdSense account is approved</div>
+        <div class="ad-scroll-item">Ad Space — Google AdSense</div>
+        <div class="ad-scroll-item">Your ad could appear here</div>
+        <div class="ad-scroll-item">Ads will appear here once your AdSense account is approved</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN APP ═══ -->
   <div class="app">
-    <div class="top">
-      <div class="brand"><span class="red">Speed</span>Reader</div>
 
-      <div class="controls">
-        <div class="speed" aria-label="Speed">
-          <button data-wpm="250" type="button">250 WPM</button>
-          <button data-wpm="400" class="active" type="button">400 WPM</button>
-          <button data-wpm="900" type="button">900 WPM</button>
+    <!-- Navigation -->
+    <div class="nav">
+      <button class="nav-tab active" data-page="speedreader" type="button">SpeedReader</button>
+      <button class="nav-tab" data-page="voicereader" type="button">VoiceReader</button>
+    </div>
+
+    <!-- ═══ PAGE 1: SPEED READER ═══ -->
+    <div class="page active" id="page-speedreader">
+      <div class="top">
+        <div class="brand"><span class="red">Speed</span>Reader</div>
+
+        <div class="controls">
+          <div class="speed" aria-label="Speed">
+            <button data-wpm="250" type="button">250 WPM</button>
+            <button data-wpm="400" class="active" type="button">400 WPM</button>
+            <button data-wpm="900" type="button">900 WPM</button>
+          </div>
+
+          <button id="playPause" class="primary" type="button" disabled>Play</button>
+          <button id="reset" type="button" disabled>Reset</button>
         </div>
+      </div>
 
-        <button id="playPause" class="primary" type="button" disabled>Play</button>
-        <button id="reset" type="button" disabled>Reset</button>
+      <div class="drop" id="drop" role="button" tabindex="0" aria-label="Upload PDF">
+        <div class="t">Upload PDF here</div>
+        <div class="s">Click or drag & drop</div>
+        <div class="fn" id="fileName"></div>
+      </div>
+      <input type="file" id="file" accept="application/pdf">
+
+      <div class="reader">
+        <div class="guide"></div>
+        <div class="word" id="word">—</div>
+      </div>
+
+      <div class="status">
+        <div id="left">No PDF loaded.</div>
+        <div id="right"></div>
       </div>
     </div>
 
-    <div class="drop" id="drop" role="button" tabindex="0" aria-label="Upload PDF">
-      <div class="t">Upload PDF here</div>
-      <div class="s">Click or drag & drop</div>
-      <div class="fn" id="fileName"></div>
-    </div>
-    <input type="file" id="file" accept="application/pdf">
+    <!-- ═══ PAGE 2: VOICE READER ═══ -->
+    <div class="page" id="page-voicereader">
+      <div class="top">
+        <div class="brand"><span class="red">Voice</span>Reader</div>
+      </div>
 
-    <div class="reader">
-      <div class="guide"></div>
-      <div class="word" id="word">—</div>
-    </div>
+      <div class="drop" id="vrDrop" role="button" tabindex="0" aria-label="Upload PDF">
+        <div class="t">Upload PDF here</div>
+        <div class="s">Click or drag & drop</div>
+        <div class="fn" id="vrFileName"></div>
+      </div>
+      <input type="file" id="vrFile" accept="application/pdf">
 
-    <div class="status">
-      <div id="left">No PDF loaded.</div>
-      <div id="right"></div>
+      <div class="vr-settings">
+        <div class="vr-field">
+          <label for="vrVoice">Voice</label>
+          <select id="vrVoice">
+            <option value="">Loading voices…</option>
+          </select>
+        </div>
+        <div class="vr-field" style="min-width:100px;flex:0.4">
+          <label for="vrSpeed">Speed</label>
+          <select id="vrSpeed">
+            <option value="0.8">0.8×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </div>
+        <button id="vrPreview" type="button" style="align-self:end" disabled>Preview Voice</button>
+      </div>
+
+      <div class="vr-controls">
+        <button id="vrPlay" class="primary" type="button" disabled>Play</button>
+        <button id="vrPauseResume" type="button" disabled>Pause</button>
+        <button id="vrStop" type="button" disabled>Stop</button>
+      </div>
+
+      <div class="vr-text-area" id="vrTextArea">
+        <span class="empty-msg">Upload a PDF to see text here.</span>
+      </div>
+
+      <div class="vr-progress">
+        <span id="vrProgressLabel">0%</span>
+        <div class="vr-progress-bar">
+          <div class="vr-progress-fill" id="vrProgressFill"></div>
+        </div>
+      </div>
+
+      <div class="status">
+        <div id="vrLeft">No PDF loaded.</div>
+        <div id="vrRight"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BOTTOM AD BANNER ═══ -->
+  <div class="ad-banner bottom">
+    <!-- AdSense responsive ad unit (bottom) -->
+    <ins class="adsbygoogle"
+      style="display:block;width:100%;min-height:90px"
+      data-ad-client="ca-pub-3128443998439992"
+      data-ad-slot="BOTTOM_AD_SLOT_ID"
+      data-ad-format="horizontal"
+      data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+    <!-- Placeholder shown when ads aren't loaded yet -->
+    <div class="ad-placeholder" id="adPlaceholderBottom">
+      <div class="ad-scroll">
+        <div class="ad-scroll-item">Ad Space — Google AdSense</div>
+        <div class="ad-scroll-item">Your ad could appear here</div>
+        <div class="ad-scroll-item">Ads will appear here once your AdSense account is approved</div>
+        <div class="ad-scroll-item">Ad Space — Google AdSense</div>
+        <div class="ad-scroll-item">Your ad could appear here</div>
+        <div class="ad-scroll-item">Ads will appear here once your AdSense account is approved</div>
+      </div>
     </div>
   </div>
 
@@ -202,7 +525,40 @@
   <script src="https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
   <script>
-    // Disable worker for maximum “just works” reliability in this prototype.
+    // ================================================================
+    //  NAVIGATION
+    // ================================================================
+    const navTabs = document.querySelectorAll('.nav-tab');
+    const pages = document.querySelectorAll('.page');
+
+    navTabs.forEach(tab => {
+      tab.onclick = () => {
+        navTabs.forEach(t => t.classList.remove('active'));
+        pages.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('page-' + tab.dataset.page).classList.add('active');
+      };
+    });
+
+    // ================================================================
+    //  AD PLACEHOLDER VISIBILITY
+    //  Hides the scrolling placeholder text once real ads load.
+    // ================================================================
+    (function hideAdPlaceholders(){
+      setTimeout(() => {
+        document.querySelectorAll('.ad-banner').forEach(banner => {
+          const ins = banner.querySelector('ins.adsbygoogle');
+          if (ins && ins.children.length > 0) {
+            const ph = banner.querySelector('.ad-placeholder');
+            if (ph) ph.style.display = 'none';
+          }
+        });
+      }, 3000);
+    })();
+
+    // ================================================================
+    //  SPEED READER (unchanged logic)
+    // ================================================================
     pdfjsLib.GlobalWorkerOptions.workerSrc = null;
 
     const drop = document.getElementById("drop");
@@ -216,7 +572,7 @@
     const playPauseBtn = document.getElementById("playPause");
     const resetBtn = document.getElementById("reset");
 
-    const speedBtns = Array.from(document.querySelectorAll(".speed button"));
+    const speedBtns = Array.from(document.querySelectorAll("#page-speedreader .speed button"));
 
     let words = [];
     let idx = 0;
@@ -230,7 +586,6 @@
       return text.split(/\s+/).filter(Boolean);
     }
 
-    // ORP: most centered letter
     function centerIndex(len){
       return Math.floor((len - 1) / 2);
     }
@@ -311,7 +666,7 @@
       else play();
     }
 
-    function reset(){
+    function srReset(){
       stop();
       idx = 0;
       renderWord(words[0] || "—");
@@ -388,7 +743,6 @@
         btn.classList.add("active");
         wpm = Number(btn.dataset.wpm);
 
-        // Apply immediately while playing
         if (playing){
           if (timer){ clearTimeout(timer); timer = null; }
           scheduleNext();
@@ -397,10 +751,321 @@
     });
 
     playPauseBtn.onclick = togglePlayPause;
-    resetBtn.onclick = reset;
+    resetBtn.onclick = srReset;
 
     renderWord("—");
     updateStatus();
+
+    // ================================================================
+    //  VOICE READER
+    // ================================================================
+    const vrDrop = document.getElementById("vrDrop");
+    const vrFileInput = document.getElementById("vrFile");
+    const vrFileNameEl = document.getElementById("vrFileName");
+    const vrVoiceSelect = document.getElementById("vrVoice");
+    const vrSpeedSelect = document.getElementById("vrSpeed");
+    const vrPreviewBtn = document.getElementById("vrPreview");
+    const vrPlayBtn = document.getElementById("vrPlay");
+    const vrPauseResumeBtn = document.getElementById("vrPauseResume");
+    const vrStopBtn = document.getElementById("vrStop");
+    const vrTextArea = document.getElementById("vrTextArea");
+    const vrLeftEl = document.getElementById("vrLeft");
+    const vrRightEl = document.getElementById("vrRight");
+    const vrProgressLabel = document.getElementById("vrProgressLabel");
+    const vrProgressFill = document.getElementById("vrProgressFill");
+
+    let vrText = "";
+    let vrWords = [];
+    let vrUtterance = null;
+    let vrIsSpeaking = false;
+    let vrIsPaused = false;
+    let vrCurrentCharIndex = 0;
+
+    // ── Voice loading ──
+    // Quality voice name substrings — these tend to be the premium/natural voices
+    const qualityVoicePatterns = [
+      "Google", "Microsoft", "Samantha", "Daniel", "Karen", "Moira",
+      "Tessa", "Fiona", "Alex", "Victoria", "Zarvox", "Enhanced",
+      "Premium", "Natural", "Neural", "Online", "Compact"
+    ];
+
+    // Known low-quality / novelty voices to exclude
+    const excludePatterns = [
+      "Zarvox", "Trinoids", "Whisper", "Bells", "Boing",
+      "Bad News", "Good News", "Bubbles", "Cellos", "Pipe Organ"
+    ];
+
+    let allVoices = [];
+
+    function isHighQuality(voice) {
+      const name = voice.name;
+      // Exclude novelty voices
+      if (excludePatterns.some(p => name.includes(p))) return false;
+      // Prefer voices that match quality patterns
+      if (qualityVoicePatterns.some(p => name.includes(p))) return true;
+      // Include remote/network voices (generally higher quality)
+      if (!voice.localService) return true;
+      return false;
+    }
+
+    function loadVoices() {
+      allVoices = speechSynthesis.getVoices();
+      if (!allVoices.length) return;
+
+      let filtered = allVoices.filter(isHighQuality);
+      // Fallback: if no "high quality" voices found, show all English voices
+      if (!filtered.length) {
+        filtered = allVoices.filter(v => v.lang.startsWith("en"));
+      }
+      // Last resort: show everything
+      if (!filtered.length) filtered = allVoices;
+
+      // Sort: English first, then alphabetical
+      filtered.sort((a, b) => {
+        const aEn = a.lang.startsWith("en") ? 0 : 1;
+        const bEn = b.lang.startsWith("en") ? 0 : 1;
+        if (aEn !== bEn) return aEn - bEn;
+        return a.name.localeCompare(b.name);
+      });
+
+      vrVoiceSelect.innerHTML = "";
+      filtered.forEach((v, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `${v.name} (${v.lang})`;
+        opt.dataset.voiceName = v.name;
+        opt.dataset.voiceLang = v.lang;
+        vrVoiceSelect.appendChild(opt);
+      });
+
+      // Store filtered list for lookup
+      vrVoiceSelect._voices = filtered;
+      vrPreviewBtn.disabled = false;
+    }
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices(); // some browsers populate synchronously
+
+    function getSelectedVoice() {
+      const voices = vrVoiceSelect._voices;
+      if (!voices || !voices.length) return null;
+      return voices[vrVoiceSelect.selectedIndex] || voices[0];
+    }
+
+    // ── Preview ──
+    vrPreviewBtn.onclick = () => {
+      speechSynthesis.cancel();
+      const voice = getSelectedVoice();
+      if (!voice) return;
+
+      const sample = new SpeechSynthesisUtterance(
+        "The quick brown fox jumps over the lazy dog. This is a preview of the selected voice."
+      );
+      sample.voice = voice;
+      sample.rate = parseFloat(vrSpeedSelect.value);
+      speechSynthesis.speak(sample);
+    };
+
+    // ── PDF upload (VoiceReader) ──
+    vrDrop.onclick = () => vrFileInput.click();
+    vrDrop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") vrFileInput.click(); };
+    vrDrop.ondragover = (e) => e.preventDefault();
+    vrDrop.ondrop = (e) => {
+      e.preventDefault();
+      const f = e.dataTransfer.files?.[0];
+      if (f && f.type === "application/pdf") vrLoadPdf(f);
+    };
+    vrFileInput.onchange = () => {
+      const f = vrFileInput.files?.[0];
+      if (f) vrLoadPdf(f);
+      vrFileInput.value = "";
+    };
+
+    async function vrLoadPdf(file) {
+      speechSynthesis.cancel();
+      vrResetState();
+
+      vrFileNameEl.textContent = file.name;
+      vrLeftEl.textContent = "Reading PDF…";
+      vrTextArea.innerHTML = '<span class="empty-msg">Reading PDF…</span>';
+
+      try {
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+
+        let text = "";
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const c = await page.getTextContent();
+          text += c.items.map(x => x.str).join(" ") + " ";
+        }
+
+        vrText = text.trim();
+        vrWords = tokenize(vrText);
+
+        if (!vrWords.length) {
+          vrLeftEl.textContent = "No extractable text found.";
+          vrTextArea.innerHTML = '<span class="empty-msg">No text found in PDF. If scanned, OCR is needed.</span>';
+          return;
+        }
+
+        vrLeftEl.textContent = `Loaded: ${vrWords.length.toLocaleString()} words`;
+        vrRightEl.textContent = "";
+
+        // Show full text in the text area
+        vrRenderText(-1);
+
+        vrPlayBtn.disabled = false;
+
+      } catch (err) {
+        console.error(err);
+        vrLeftEl.textContent = "Failed to read PDF.";
+        vrTextArea.innerHTML = '<span class="empty-msg">Error reading PDF. See console.</span>';
+      }
+    }
+
+    function vrResetState() {
+      vrIsSpeaking = false;
+      vrIsPaused = false;
+      vrCurrentCharIndex = 0;
+      vrPlayBtn.textContent = "Play";
+      vrPlayBtn.disabled = true;
+      vrPauseResumeBtn.disabled = true;
+      vrStopBtn.disabled = true;
+      vrProgressFill.style.width = "0%";
+      vrProgressLabel.textContent = "0%";
+      vrRightEl.textContent = "";
+    }
+
+    // ── Render text with highlighting ──
+    function vrRenderText(charIndex) {
+      if (!vrText) return;
+
+      if (charIndex < 0) {
+        vrTextArea.textContent = vrText;
+        return;
+      }
+
+      // Find word boundary around charIndex
+      let wordStart = charIndex;
+      let wordEnd = charIndex;
+      while (wordStart > 0 && vrText[wordStart - 1] !== ' ') wordStart--;
+      while (wordEnd < vrText.length && vrText[wordEnd] !== ' ') wordEnd++;
+
+      const before = vrText.slice(0, wordStart);
+      const current = vrText.slice(wordStart, wordEnd);
+      const after = vrText.slice(wordEnd);
+
+      vrTextArea.innerHTML =
+        `<span class="spoken">${escapeHtml(before)}</span><span class="current-word">${escapeHtml(current)}</span>${escapeHtml(after)}`;
+
+      // Auto-scroll to keep current word visible
+      const currentEl = vrTextArea.querySelector('.current-word');
+      if (currentEl) {
+        const areaRect = vrTextArea.getBoundingClientRect();
+        const wordRect = currentEl.getBoundingClientRect();
+        if (wordRect.top < areaRect.top || wordRect.bottom > areaRect.bottom) {
+          currentEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+
+      // Update progress
+      const pct = Math.min(100, Math.round((charIndex / vrText.length) * 100));
+      vrProgressFill.style.width = pct + "%";
+      vrProgressLabel.textContent = pct + "%";
+    }
+
+    // ── Speech controls ──
+    vrPlayBtn.onclick = () => {
+      if (vrIsSpeaking && !vrIsPaused) return;
+      if (vrIsPaused) {
+        speechSynthesis.resume();
+        vrIsPaused = false;
+        vrPauseResumeBtn.textContent = "Pause";
+        return;
+      }
+
+      const voice = getSelectedVoice();
+      if (!voice || !vrText) return;
+
+      speechSynthesis.cancel();
+
+      vrUtterance = new SpeechSynthesisUtterance(vrText);
+      vrUtterance.voice = voice;
+      vrUtterance.rate = parseFloat(vrSpeedSelect.value);
+
+      vrUtterance.onboundary = (e) => {
+        if (e.name === 'word') {
+          vrCurrentCharIndex = e.charIndex;
+          vrRenderText(e.charIndex);
+        }
+      };
+
+      vrUtterance.onend = () => {
+        vrIsSpeaking = false;
+        vrIsPaused = false;
+        vrPlayBtn.textContent = "Play";
+        vrPlayBtn.disabled = false;
+        vrPauseResumeBtn.disabled = true;
+        vrStopBtn.disabled = true;
+        vrProgressFill.style.width = "100%";
+        vrProgressLabel.textContent = "100%";
+        vrRightEl.textContent = "Done.";
+      };
+
+      vrUtterance.onerror = (e) => {
+        if (e.error === 'canceled') return; // Normal on stop/cancel
+        console.error("Speech error:", e);
+        vrRightEl.textContent = "Speech error. See console.";
+        vrIsSpeaking = false;
+      };
+
+      speechSynthesis.speak(vrUtterance);
+      vrIsSpeaking = true;
+      vrIsPaused = false;
+      vrPlayBtn.textContent = "Playing…";
+      vrPauseResumeBtn.textContent = "Pause";
+      vrPauseResumeBtn.disabled = false;
+      vrStopBtn.disabled = false;
+      vrRightEl.textContent = "";
+    };
+
+    vrPauseResumeBtn.onclick = () => {
+      if (!vrIsSpeaking) return;
+      if (vrIsPaused) {
+        speechSynthesis.resume();
+        vrIsPaused = false;
+        vrPauseResumeBtn.textContent = "Pause";
+        vrPlayBtn.textContent = "Playing…";
+      } else {
+        speechSynthesis.pause();
+        vrIsPaused = true;
+        vrPauseResumeBtn.textContent = "Resume";
+        vrPlayBtn.textContent = "Paused";
+      }
+    };
+
+    vrStopBtn.onclick = () => {
+      speechSynthesis.cancel();
+      vrIsSpeaking = false;
+      vrIsPaused = false;
+      vrPlayBtn.textContent = "Play";
+      vrPlayBtn.disabled = false;
+      vrPauseResumeBtn.disabled = true;
+      vrStopBtn.disabled = true;
+      if (vrText) vrRenderText(-1);
+      vrProgressFill.style.width = "0%";
+      vrProgressLabel.textContent = "0%";
+    };
+
+    // ── Keep speech synthesis alive (Chrome pauses after ~15s) ──
+    setInterval(() => {
+      if (vrIsSpeaking && !vrIsPaused) {
+        speechSynthesis.pause();
+        speechSynthesis.resume();
+      }
+    }, 10000);
+
   </script>
 </body>
 </html>
