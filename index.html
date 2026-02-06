@@ -1143,6 +1143,21 @@
       vrSpeakChunk();
     };
 
+    // Restart speech at new speed when speed is changed mid-playback
+    vrSpeedSelect.onchange = () => {
+      if (vrIsSpeaking && !vrIsPaused) {
+        speechSynthesis.cancel();
+        // Rebuild chunks from current position onward
+        const spokenChars = vrChunks[vrChunkIndex] ? vrChunks[vrChunkIndex].offset : 0;
+        const remaining = vrText.slice(spokenChars);
+        vrChunks = splitIntoChunks(remaining, 2000).map(c => ({
+          text: c.text, offset: c.offset + spokenChars
+        }));
+        vrChunkIndex = 0;
+        vrSpeakChunk();
+      }
+    };
+
     vrPauseResumeBtn.onclick = () => {
       if (!vrIsSpeaking) return;
       if (vrIsPaused) {
@@ -1209,7 +1224,8 @@
     let crIsPaused = false;
     let crChunks = [];
     let crChunkIndex = 0;
-    let crChunkCharOffset = 0;
+    let crWordIdx = 0;
+    let crWordTimer = null;
 
     // ── Populate voice dropdown (reuse same filter logic) ──
     function crLoadVoices() {
@@ -1258,21 +1274,6 @@
       const after = core.slice(i + 1);
       crWordEl.innerHTML =
         `${escapeHtml(lead)}${escapeHtml(before)}<span class="orp">${escapeHtml(mid)}</span>${escapeHtml(after)}${escapeHtml(tail)}`;
-    }
-
-    // ── Find the word at a given character index ──
-    function crGetWordAtChar(charIndex) {
-      let wordStart = charIndex;
-      let wordEnd = charIndex;
-      while (wordStart > 0 && crText[wordStart - 1] !== ' ') wordStart--;
-      while (wordEnd < crText.length && crText[wordEnd] !== ' ') wordEnd++;
-      return crText.slice(wordStart, wordEnd);
-    }
-
-    // ── Count words up to a character index ──
-    function crWordCountAtChar(charIndex) {
-      const textBefore = crText.slice(0, charIndex);
-      return textBefore.split(/\s+/).filter(Boolean).length;
     }
 
     // ── Preview ──
@@ -1342,6 +1343,8 @@
       crIsPaused = false;
       crChunks = [];
       crChunkIndex = 0;
+      crWordIdx = 0;
+      if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
       crPlayBtn.textContent = "Play";
       crPlayBtn.disabled = true;
       crPauseResumeBtn.disabled = true;
@@ -1352,11 +1355,22 @@
       crRenderWord("—");
     }
 
-    // ── Chunked speech with word display ──
-    function crSpeakChunk() {
-      if (crChunkIndex >= crChunks.length) {
+    // ── Timer-based word display (synced to speech rate) ──
+    // At speech rate 1.0, ~160 WPM natural pace = ~375ms per word.
+    // Adjust per word length for more natural feel.
+    function crMsForWord(word, rate) {
+      const baseMs = 375 / rate;
+      const len = word.length;
+      if (len <= 3) return baseMs * 0.7;
+      if (len <= 7) return baseMs;
+      return baseMs * 1.3;
+    }
+
+    function crAdvanceWord() {
+      if (!crIsSpeaking || crIsPaused) return;
+
+      if (crWordIdx >= crWords.length) {
         crIsSpeaking = false;
-        crIsPaused = false;
         crPlayBtn.textContent = "Play";
         crPlayBtn.disabled = false;
         crPauseResumeBtn.disabled = true;
@@ -1368,31 +1382,31 @@
         return;
       }
 
-      const chunk = crChunks[crChunkIndex];
-      crChunkCharOffset = chunk.offset;
+      const word = crWords[crWordIdx];
+      crRenderWord(word);
+      crWordIdx++;
 
+      crRightEl.textContent = `${crWordIdx.toLocaleString()}/${crWords.length.toLocaleString()}`;
+      const pct = Math.min(100, Math.round((crWordIdx / crWords.length) * 100));
+      crProgressFill.style.width = pct + "%";
+      crProgressLabel.textContent = pct + "%";
+
+      const rate = parseFloat(crSpeedSelect.value);
+      crWordTimer = setTimeout(crAdvanceWord, crMsForWord(word, rate));
+    }
+
+    // ── Chunked speech (audio only, display driven by timer) ──
+    function crSpeakChunk() {
+      if (crChunkIndex >= crChunks.length) return;
+
+      const chunk = crChunks[crChunkIndex];
       const utt = new SpeechSynthesisUtterance(chunk.text);
       utt.voice = crGetSelectedVoice();
       utt.rate = parseFloat(crSpeedSelect.value);
 
-      utt.onboundary = (e) => {
-        if (e.name === 'word') {
-          const globalIndex = crChunkCharOffset + e.charIndex;
-          const currentWord = crGetWordAtChar(globalIndex);
-          crRenderWord(currentWord);
-
-          const wordNum = crWordCountAtChar(globalIndex);
-          crRightEl.textContent = `${wordNum.toLocaleString()}/${crWords.length.toLocaleString()}`;
-
-          const pct = Math.min(100, Math.round((globalIndex / crText.length) * 100));
-          crProgressFill.style.width = pct + "%";
-          crProgressLabel.textContent = pct + "%";
-        }
-      };
-
       utt.onend = () => {
         crChunkIndex++;
-        if (crIsSpeaking && !crIsPaused) {
+        if (crIsSpeaking && !crIsPaused && crChunkIndex < crChunks.length) {
           crSpeakChunk();
         }
       };
@@ -1400,8 +1414,6 @@
       utt.onerror = (e) => {
         if (e.error === 'canceled') return;
         console.error("Combo speech error:", e);
-        crRightEl.textContent = "Speech error.";
-        crIsSpeaking = false;
       };
 
       speechSynthesis.speak(utt);
@@ -1415,6 +1427,7 @@
         crIsPaused = false;
         crPauseResumeBtn.textContent = "Pause";
         crPlayBtn.textContent = "Playing…";
+        crAdvanceWord();
         return;
       }
 
@@ -1424,6 +1437,7 @@
       speechSynthesis.cancel();
       crChunks = splitIntoChunks(crText, 2000);
       crChunkIndex = 0;
+      crWordIdx = 0;
 
       crIsSpeaking = true;
       crIsPaused = false;
@@ -1433,7 +1447,25 @@
       crStopBtn.disabled = false;
       crRightEl.textContent = "";
 
+      // Start audio and word display timer together
       crSpeakChunk();
+      crAdvanceWord();
+    };
+
+    // Restart speech at new speed when changed mid-playback
+    crSpeedSelect.onchange = () => {
+      if (crIsSpeaking && !crIsPaused) {
+        // Restart audio at new speed from current chunk position
+        speechSynthesis.cancel();
+        const spokenChars = crChunks[crChunkIndex] ? crChunks[crChunkIndex].offset : 0;
+        const remaining = crText.slice(spokenChars);
+        crChunks = splitIntoChunks(remaining, 2000).map(c => ({
+          text: c.text, offset: c.offset + spokenChars
+        }));
+        crChunkIndex = 0;
+        crSpeakChunk();
+        // Word timer automatically picks up new speed on next tick
+      }
     };
 
     crPauseResumeBtn.onclick = () => {
@@ -1443,9 +1475,11 @@
         crIsPaused = false;
         crPauseResumeBtn.textContent = "Pause";
         crPlayBtn.textContent = "Playing…";
+        crAdvanceWord();
       } else {
         speechSynthesis.pause();
         crIsPaused = true;
+        if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
         crPauseResumeBtn.textContent = "Resume";
         crPlayBtn.textContent = "Paused";
       }
@@ -1457,6 +1491,8 @@
       crIsPaused = false;
       crChunks = [];
       crChunkIndex = 0;
+      crWordIdx = 0;
+      if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
       crPlayBtn.textContent = "Play";
       crPlayBtn.disabled = false;
       crPauseResumeBtn.disabled = true;
