@@ -470,11 +470,7 @@
         <div class="vr-field" style="min-width:100px;flex:0.4">
           <label for="vrSpeed">Speed</label>
           <select id="vrSpeed">
-            <option value="0.8">0.8×</option>
             <option value="1" selected>1×</option>
-            <option value="1.25">1.25×</option>
-            <option value="1.5">1.5×</option>
-            <option value="2">2×</option>
           </select>
         </div>
         <button id="vrPreview" type="button" style="align-self:end" disabled>Preview Voice</button>
@@ -526,11 +522,7 @@
         <div class="vr-field" style="min-width:100px;flex:0.4">
           <label for="crSpeed">Speed</label>
           <select id="crSpeed">
-            <option value="0.8">0.8×</option>
             <option value="1" selected>1×</option>
-            <option value="1.25">1.25×</option>
-            <option value="1.5">1.5×</option>
-            <option value="2">2×</option>
           </select>
         </div>
         <button id="crPreview" type="button" style="align-self:end" disabled>Preview Voice</button>
@@ -1143,21 +1135,6 @@
       vrSpeakChunk();
     };
 
-    // Restart speech at new speed when speed is changed mid-playback
-    vrSpeedSelect.onchange = () => {
-      if (vrIsSpeaking && !vrIsPaused) {
-        speechSynthesis.cancel();
-        // Rebuild chunks from current position onward
-        const spokenChars = vrChunks[vrChunkIndex] ? vrChunks[vrChunkIndex].offset : 0;
-        const remaining = vrText.slice(spokenChars);
-        vrChunks = splitIntoChunks(remaining, 2000).map(c => ({
-          text: c.text, offset: c.offset + spokenChars
-        }));
-        vrChunkIndex = 0;
-        vrSpeakChunk();
-      }
-    };
-
     vrPauseResumeBtn.onclick = () => {
       if (!vrIsSpeaking) return;
       if (vrIsPaused) {
@@ -1375,10 +1352,10 @@
 
       // Update display immediately when this word starts
       crRenderWord(word);
-      crWordIdx++;
 
-      crRightEl.textContent = `${crWordIdx.toLocaleString()}/${crWords.length.toLocaleString()}`;
-      const pct = Math.min(100, Math.round((crWordIdx / crWords.length) * 100));
+      const displayIdx = crWordIdx + 1;
+      crRightEl.textContent = `${displayIdx.toLocaleString()}/${crWords.length.toLocaleString()}`;
+      const pct = Math.min(100, Math.round((displayIdx / crWords.length) * 100));
       crProgressFill.style.width = pct + "%";
       crProgressLabel.textContent = pct + "%";
 
@@ -1388,6 +1365,8 @@
       utt.rate = parseFloat(crSpeedSelect.value);
 
       utt.onend = () => {
+        // Only advance index after the word is fully spoken
+        crWordIdx++;
         if (crIsSpeaking && !crIsPaused) {
           crSpeakNextWord();
         }
@@ -1430,17 +1409,19 @@
       crSpeakNextWord();
     };
 
-    // Speed changes take effect on the next word automatically
-    crSpeedSelect.onchange = () => {};
-
     crPauseResumeBtn.onclick = () => {
       if (!crIsSpeaking) return;
       if (crIsPaused) {
+        // Resume: speak the current word (which was displayed but cut off)
         crIsPaused = false;
         crPauseResumeBtn.textContent = "Pause";
         crPlayBtn.textContent = "Playing…";
         crSpeakNextWord();
       } else {
+        // Pause: let the current word finish, then stop the chain.
+        // Cancel kills the current utterance so onend won't fire —
+        // that's fine because crIsPaused prevents crSpeakNextWord
+        // from running, and crWordIdx stays at the current word.
         speechSynthesis.cancel();
         crIsPaused = true;
         crPauseResumeBtn.textContent = "Resume";
