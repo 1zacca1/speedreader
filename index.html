@@ -859,13 +859,78 @@
 
     function isHighQuality(voice) {
       const name = voice.name;
-      // Exclude novelty voices
       if (excludePatterns.some(p => name.includes(p))) return false;
-      // Prefer voices that match quality patterns
       if (qualityVoicePatterns.some(p => name.includes(p))) return true;
-      // Include remote/network voices (generally higher quality)
       if (!voice.localService) return true;
       return false;
+    }
+
+    // ── Friendly voice name mapping ──
+    const langNames = {
+      'en-GB': 'English (UK)', 'en-US': 'English (US)', 'en-AU': 'English (AU)',
+      'en-IN': 'English (India)', 'en': 'English',
+      'de-DE': 'German', 'de': 'German',
+      'fr-FR': 'French', 'fr-CA': 'French (Canada)', 'fr': 'French',
+      'es-ES': 'Spanish (Spain)', 'es-US': 'Spanish (US)', 'es-MX': 'Spanish (Mexico)', 'es': 'Spanish',
+      'it-IT': 'Italian', 'it': 'Italian',
+      'pt-BR': 'Portuguese (Brazil)', 'pt-PT': 'Portuguese', 'pt': 'Portuguese',
+      'nl-NL': 'Dutch', 'nl': 'Dutch',
+      'pl-PL': 'Polish', 'pl': 'Polish',
+      'ru-RU': 'Russian', 'ru': 'Russian',
+      'ja-JP': 'Japanese', 'ja': 'Japanese',
+      'ko-KR': 'Korean', 'ko': 'Korean',
+      'zh-CN': 'Chinese (Simplified)', 'zh-TW': 'Chinese (Traditional)', 'zh': 'Chinese',
+      'hi-IN': 'Hindi', 'hi': 'Hindi',
+      'id-ID': 'Indonesian', 'id': 'Indonesian',
+      'nb-NO': 'Norwegian', 'no': 'Norwegian',
+      'sv-SE': 'Swedish', 'sv': 'Swedish',
+      'da-DK': 'Danish', 'da': 'Danish',
+      'fi-FI': 'Finnish', 'fi': 'Finnish',
+      'tr-TR': 'Turkish', 'tr': 'Turkish',
+      'ar-SA': 'Arabic', 'ar': 'Arabic',
+      'th-TH': 'Thai', 'th': 'Thai',
+      'vi-VN': 'Vietnamese', 'vi': 'Vietnamese',
+    };
+
+    function friendlyVoiceName(voice) {
+      const name = voice.name;
+      const lang = langNames[voice.lang] || langNames[voice.lang.split('-')[0]] || voice.lang;
+
+      // Google voices: "Google UK English Female" → "Female English (UK)"
+      const googleMatch = name.match(/^Google\s+(?:UK\s+)?(?:US\s+)?(.+?)$/i);
+      if (googleMatch) {
+        const part = googleMatch[1];
+        // "UK English Female" → "Female English (UK)"
+        if (name.includes('Female')) return `Female — ${lang}`;
+        if (name.includes('Male')) return `Male — ${lang}`;
+        // Non-English Google voices: "Google Deutsch" → "German"
+        return lang;
+      }
+
+      // Microsoft voices: "Microsoft David - English (United States)" → "David — Male English (US)"
+      const msMatch = name.match(/^Microsoft\s+(\w+)\s*-\s*(.+)$/i);
+      if (msMatch) {
+        const person = msMatch[1];
+        const knownMale = ['David', 'Mark', 'George', 'Richard', 'James', 'Sean'];
+        const knownFemale = ['Zira', 'Hazel', 'Susan', 'Catherine', 'Linda', 'Jenny'];
+        let gender = '';
+        if (knownMale.includes(person)) gender = 'Male';
+        else if (knownFemale.includes(person)) gender = 'Female';
+        return `${person}${gender ? ' — ' + gender : ''} — ${lang}`;
+      }
+
+      // Apple/other voices: "Samantha", "Daniel", etc.
+      const knownAppleFemale = ['Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria', 'Allison', 'Ava'];
+      const knownAppleMale = ['Daniel', 'Alex', 'Tom', 'Oliver', 'Fred', 'Ralph'];
+      for (const n of knownAppleFemale) {
+        if (name.includes(n)) return `${n} — Female — ${lang}`;
+      }
+      for (const n of knownAppleMale) {
+        if (name.includes(n)) return `${n} — Male — ${lang}`;
+      }
+
+      // Fallback: just show name + language
+      return `${name} — ${lang}`;
     }
 
     function loadVoices() {
@@ -892,9 +957,7 @@
       filtered.forEach((v, i) => {
         const opt = document.createElement("option");
         opt.value = i;
-        opt.textContent = `${v.name} (${v.lang})`;
-        opt.dataset.voiceName = v.name;
-        opt.dataset.voiceLang = v.lang;
+        opt.textContent = friendlyVoiceName(v);
         vrVoiceSelect.appendChild(opt);
       });
 
@@ -1139,6 +1202,14 @@
       vrSpeakChunk();
     };
 
+    // Restart speech at new speed when changed mid-playback
+    vrSpeedSelect.onchange = () => {
+      if (vrIsSpeaking && !vrIsPaused) {
+        speechSynthesis.cancel();
+        vrSpeakChunk(); // restart current chunk at new rate
+      }
+    };
+
     vrPauseResumeBtn.onclick = () => {
       if (!vrIsSpeaking) return;
       if (vrIsPaused) {
@@ -1207,6 +1278,7 @@
     let crChunkIndex = 0;
     let crWordIdx = 0;
     let crWordTimer = null;
+    let crPausedAtWord = 0;
 
     // ── Populate voice dropdown (reuse same filter logic) ──
     function crLoadVoices() {
@@ -1228,7 +1300,7 @@
       filtered.forEach((v, i) => {
         const opt = document.createElement("option");
         opt.value = i;
-        opt.textContent = `${v.name} (${v.lang})`;
+        opt.textContent = friendlyVoiceName(v);
         crVoiceSelect.appendChild(opt);
       });
       crVoiceSelect._voices = filtered;
@@ -1323,6 +1395,8 @@
       crIsSpeaking = false;
       crIsPaused = false;
       crWordIdx = 0;
+      crPausedAtWord = 0;
+      if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
       crPlayBtn.textContent = "Play";
       crPlayBtn.disabled = true;
       crPauseResumeBtn.disabled = true;
@@ -1333,14 +1407,27 @@
       crRenderWord("—");
     }
 
-    // ── Word-by-word speech: each word is its own utterance ──
-    // This gives true 1:1 mapping — the display updates exactly
-    // when the voice starts speaking each word.
-    function crSpeakNextWord() {
+    // ── Flowing chunk speech + timer-synced word display ──
+    // Speech plays in natural chunks (smooth audio).
+    // Word display advances on a timer estimated from speech rate.
+    // At rate 1.0 ≈ 160 WPM (375ms/word), adjusted by word length.
+    function crMsForWord(word) {
+      const rate = parseFloat(crSpeedSelect.value) || 1;
+      const baseMs = 375 / rate;
+      const len = word.length;
+      if (len <= 2) return baseMs * 0.6;
+      if (len <= 4) return baseMs * 0.8;
+      if (len <= 7) return baseMs;
+      if (len <= 10) return baseMs * 1.2;
+      return baseMs * 1.4;
+    }
+
+    function crAdvanceWord() {
       if (!crIsSpeaking || crIsPaused) return;
 
       if (crWordIdx >= crWords.length) {
         crIsSpeaking = false;
+        if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
         crPlayBtn.textContent = "Play";
         crPlayBtn.disabled = false;
         crPauseResumeBtn.disabled = true;
@@ -1353,33 +1440,44 @@
       }
 
       const word = crWords[crWordIdx];
-
-      // Update display immediately when this word starts
       crRenderWord(word);
+      crWordIdx++;
 
-      const displayIdx = crWordIdx + 1;
-      crRightEl.textContent = `${displayIdx.toLocaleString()}/${crWords.length.toLocaleString()}`;
-      const pct = Math.min(100, Math.round((displayIdx / crWords.length) * 100));
+      crRightEl.textContent = `${crWordIdx.toLocaleString()}/${crWords.length.toLocaleString()}`;
+      const pct = Math.min(100, Math.round((crWordIdx / crWords.length) * 100));
       crProgressFill.style.width = pct + "%";
       crProgressLabel.textContent = pct + "%";
 
-      // Speak just this word
-      const utt = new SpeechSynthesisUtterance(word);
+      crWordTimer = setTimeout(crAdvanceWord, crMsForWord(word));
+    }
+
+    // Chunk-based speech for natural flowing audio
+    function crSpeakFromWord(startWordIdx) {
+      // Build text from startWordIdx onward
+      const remaining = crWords.slice(startWordIdx).join(' ');
+      crChunks = splitIntoChunks(remaining, 2000);
+      crChunkIndex = 0;
+      crSpeakChunk();
+    }
+
+    function crSpeakChunk() {
+      if (crChunkIndex >= crChunks.length) return;
+
+      const chunk = crChunks[crChunkIndex];
+      const utt = new SpeechSynthesisUtterance(chunk.text);
       utt.voice = crGetSelectedVoice();
-      utt.rate = parseFloat(crSpeedSelect.value);
+      utt.rate = parseFloat(crSpeedSelect.value) || 1;
 
       utt.onend = () => {
-        // Only advance index after the word is fully spoken
-        crWordIdx++;
-        if (crIsSpeaking && !crIsPaused) {
-          crSpeakNextWord();
+        crChunkIndex++;
+        if (crIsSpeaking && !crIsPaused && crChunkIndex < crChunks.length) {
+          crSpeakChunk();
         }
       };
 
       utt.onerror = (e) => {
         if (e.error === 'canceled') return;
         console.error("Combo speech error:", e);
-        crIsSpeaking = false;
       };
 
       speechSynthesis.speak(utt);
@@ -1389,10 +1487,13 @@
     crPlayBtn.onclick = () => {
       if (crIsSpeaking && !crIsPaused) return;
       if (crIsPaused) {
+        // Resume from where we paused
         crIsPaused = false;
+        crWordIdx = crPausedAtWord;
         crPauseResumeBtn.textContent = "Pause";
         crPlayBtn.textContent = "Playing…";
-        crSpeakNextWord();
+        crSpeakFromWord(crWordIdx);
+        crAdvanceWord();
         return;
       }
 
@@ -1410,24 +1511,34 @@
       crStopBtn.disabled = false;
       crRightEl.textContent = "";
 
-      crSpeakNextWord();
+      crSpeakFromWord(0);
+      crAdvanceWord();
+    };
+
+    // Speed change restarts both speech and timer from current word
+    crSpeedSelect.onchange = () => {
+      if (crIsSpeaking && !crIsPaused) {
+        speechSynthesis.cancel();
+        if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
+        crSpeakFromWord(crWordIdx);
+        crAdvanceWord();
+      }
     };
 
     crPauseResumeBtn.onclick = () => {
       if (!crIsSpeaking) return;
       if (crIsPaused) {
-        // Resume: speak the current word (which was displayed but cut off)
         crIsPaused = false;
+        crWordIdx = crPausedAtWord;
         crPauseResumeBtn.textContent = "Pause";
         crPlayBtn.textContent = "Playing…";
-        crSpeakNextWord();
+        crSpeakFromWord(crWordIdx);
+        crAdvanceWord();
       } else {
-        // Pause: let the current word finish, then stop the chain.
-        // Cancel kills the current utterance so onend won't fire —
-        // that's fine because crIsPaused prevents crSpeakNextWord
-        // from running, and crWordIdx stays at the current word.
         speechSynthesis.cancel();
+        if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
         crIsPaused = true;
+        crPausedAtWord = crWordIdx;
         crPauseResumeBtn.textContent = "Resume";
         crPlayBtn.textContent = "Paused";
       }
@@ -1435,9 +1546,11 @@
 
     crStopBtn.onclick = () => {
       speechSynthesis.cancel();
+      if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
       crIsSpeaking = false;
       crIsPaused = false;
       crWordIdx = 0;
+      crPausedAtWord = 0;
       crPlayBtn.textContent = "Play";
       crPlayBtn.disabled = false;
       crPauseResumeBtn.disabled = true;
