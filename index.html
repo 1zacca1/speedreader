@@ -939,21 +939,12 @@
       allVoices = speechSynthesis.getVoices();
       if (!allVoices.length) return;
 
-      let filtered = allVoices.filter(isHighQuality);
-      // Fallback: if no "high quality" voices found, show all English voices
-      if (!filtered.length) {
-        filtered = allVoices.filter(v => v.lang.startsWith("en"));
-      }
-      // Last resort: show everything
-      if (!filtered.length) filtered = allVoices;
+      // English voices only — non-English voices can't translate, they just mispronounce
+      let filtered = allVoices.filter(v => v.lang.startsWith("en") && isHighQuality(v));
+      if (!filtered.length) filtered = allVoices.filter(v => v.lang.startsWith("en"));
+      if (!filtered.length) filtered = allVoices; // absolute last resort
 
-      // Sort: English first, then alphabetical
-      filtered.sort((a, b) => {
-        const aEn = a.lang.startsWith("en") ? 0 : 1;
-        const bEn = b.lang.startsWith("en") ? 0 : 1;
-        if (aEn !== bEn) return aEn - bEn;
-        return a.name.localeCompare(b.name);
-      });
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
 
       vrVoiceSelect.innerHTML = "";
       filtered.forEach((v, i) => {
@@ -1297,16 +1288,12 @@
       const voices = speechSynthesis.getVoices();
       if (!voices.length) return;
 
-      let filtered = voices.filter(isHighQuality);
+      // English voices only — non-English voices can't translate, they just mispronounce
+      let filtered = voices.filter(v => v.lang.startsWith("en") && isHighQuality(v));
       if (!filtered.length) filtered = voices.filter(v => v.lang.startsWith("en"));
       if (!filtered.length) filtered = voices;
 
-      filtered.sort((a, b) => {
-        const aEn = a.lang.startsWith("en") ? 0 : 1;
-        const bEn = b.lang.startsWith("en") ? 0 : 1;
-        if (aEn !== bEn) return aEn - bEn;
-        return a.name.localeCompare(b.name);
-      });
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
 
       crVoiceSelect.innerHTML = "";
       filtered.forEach((v, i) => {
