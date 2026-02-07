@@ -1202,13 +1202,23 @@
       vrSpeakChunk();
     };
 
-    // Restart speech at new speed when changed mid-playback
-    vrSpeedSelect.onchange = () => {
+    // Restart speech from current chunk when speed or voice changes
+    function vrRestartFromCurrentPosition() {
       if (vrIsSpeaking && !vrIsPaused) {
         speechSynthesis.cancel();
-        vrSpeakChunk(); // restart current chunk at new rate
+        // Rebuild chunks from current chunk offset onward
+        const resumeOffset = vrChunks[vrChunkIndex] ? vrChunks[vrChunkIndex].offset : 0;
+        const remaining = vrText.slice(resumeOffset);
+        vrChunks = splitIntoChunks(remaining, 2000).map(c => ({
+          text: c.text, offset: c.offset + resumeOffset
+        }));
+        vrChunkIndex = 0;
+        vrSpeakChunk();
       }
-    };
+    }
+
+    vrSpeedSelect.onchange = vrRestartFromCurrentPosition;
+    vrVoiceSelect.onchange = vrRestartFromCurrentPosition;
 
     vrPauseResumeBtn.onclick = () => {
       if (!vrIsSpeaking) return;
@@ -1515,15 +1525,18 @@
       crAdvanceWord();
     };
 
-    // Speed change restarts both speech and timer from current word
-    crSpeedSelect.onchange = () => {
+    // Restart speech and timer from current word when speed or voice changes
+    function crRestartFromCurrentPosition() {
       if (crIsSpeaking && !crIsPaused) {
         speechSynthesis.cancel();
         if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
         crSpeakFromWord(crWordIdx);
         crAdvanceWord();
       }
-    };
+    }
+
+    crSpeedSelect.onchange = crRestartFromCurrentPosition;
+    crVoiceSelect.onchange = crRestartFromCurrentPosition;
 
     crPauseResumeBtn.onclick = () => {
       if (!crIsSpeaking) return;
