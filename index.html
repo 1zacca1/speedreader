@@ -6,28 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="SpeedReader — Upload a PDF and speed-read, listen with text-to-speech, or combine both. Free, private, runs entirely in your browser.">
 <meta name="theme-color" content="#0b0f14">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230b0f14'/><text x='4' y='46' font-family='system-ui,sans-serif' font-weight='900' font-size='42'><tspan fill='%23ff3b3b'>S</tspan><tspan fill='%23e7eef8'>R</tspan></text></svg>">
-
-<!-- ============================================================
-     GOOGLE ADSENSE — STEP-BY-STEP SETUP
-     ============================================================
-     1. Go to https://adsense.google.com and sign in / sign up.
-     2. Add your site URL and wait for approval (days → weeks).
-     3. Once approved, copy your Publisher ID (looks like: ca-pub-1234567890123456).
-     4. Replace EVERY occurrence of "ca-pub-3128443998439992" in this
-        file with your real Publisher ID.
-     5. Each <ins class="adsbygoogle"> block is one ad unit.  After
-        approval, you can also replace the data-ad-slot values with
-        specific ad-unit IDs from your AdSense dashboard for finer
-        control (optional — the auto-ads script handles it too).
-     6. The async AdSense script below loads Google's ad code.
-        It is safe to leave it in even before approval; it simply
-        won't serve ads until your account is active.
-     ============================================================ -->
-
-<!-- Google AdSense script — replace ca-pub-3128443998439992 with your real ID -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3128443998439992"
-  crossorigin="anonymous"></script>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230b0f14'/><text x='4' y='46' font-family='system-ui,sans-serif' font-weight='900' font-style='italic' font-size='42'><tspan fill='%23ff3b3b'>S</tspan><tspan fill='%23e7eef8'>R</tspan></text></svg>">
 
 <style>
   :root{
@@ -53,55 +32,6 @@
     align-items:center;
     min-height:100vh;
     padding:0;
-  }
-
-  /* ── Ad banner containers ── */
-  .ad-banner{
-    width:100%;
-    overflow:hidden;
-    background:rgba(17,24,39,0.60);
-    border-bottom:1px solid var(--border);
-    position:relative;
-    min-height:100px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .ad-banner.bottom{
-    border-bottom:none;
-    border-top:1px solid var(--border);
-    margin-top:auto;
-  }
-
-  /* Placeholder shown before AdSense is live */
-  .ad-placeholder{
-    color:var(--muted);
-    font-size:12px;
-    text-align:center;
-    padding:8px 16px;
-    opacity:0.6;
-  }
-
-  /* Scrolling wrapper for the ad marquee effect */
-  .ad-scroll{
-    display:flex;
-    animation: adScroll 30s linear infinite;
-    white-space:nowrap;
-  }
-  .ad-scroll:hover{ animation-play-state:paused; }
-
-  @keyframes adScroll{
-    0%  { transform:translateX(0); }
-    100%{ transform:translateX(-50%); }
-  }
-
-  .ad-scroll-item{
-    flex:0 0 auto;
-    padding:0 40px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-width:300px;
   }
 
   /* ── Main app ── */
@@ -164,6 +94,7 @@
 
   .brand{
     font-weight:800;
+    font-style:italic;
     letter-spacing:0.2px;
     font-size:14px;
     user-select:none;
@@ -380,30 +311,6 @@
 
 <body>
 
-  <!-- ═══ TOP AD BANNER ═══ -->
-  <div class="ad-banner top">
-    <!-- AdSense responsive ad unit (top) -->
-    <ins class="adsbygoogle"
-      style="display:block;width:100%;min-height:90px"
-      data-ad-client="ca-pub-3128443998439992"
-      data-ad-slot="TOP_AD_SLOT_ID"
-      data-ad-format="horizontal"
-      data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-
-    <!-- Placeholder shown when ads aren't loaded yet -->
-    <div class="ad-placeholder" id="adPlaceholderTop">
-      <div class="ad-scroll">
-        <div class="ad-scroll-item">Ad Space — Google AdSense</div>
-        <div class="ad-scroll-item">Your ad could appear here</div>
-        <div class="ad-scroll-item">Ads will appear here once your AdSense account is approved</div>
-        <div class="ad-scroll-item">Ad Space — Google AdSense</div>
-        <div class="ad-scroll-item">Your ad could appear here</div>
-        <div class="ad-scroll-item">Ads will appear here once your AdSense account is approved</div>
-      </div>
-    </div>
-  </div>
-
   <!-- ═══ MAIN APP ═══ -->
   <div class="app">
 
@@ -559,30 +466,6 @@
     </div>
   </div>
 
-  <!-- ═══ BOTTOM AD BANNER ═══ -->
-  <div class="ad-banner bottom">
-    <!-- AdSense responsive ad unit (bottom) -->
-    <ins class="adsbygoogle"
-      style="display:block;width:100%;min-height:90px"
-      data-ad-client="ca-pub-3128443998439992"
-      data-ad-slot="BOTTOM_AD_SLOT_ID"
-      data-ad-format="horizontal"
-      data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-
-    <!-- Placeholder shown when ads aren't loaded yet -->
-    <div class="ad-placeholder" id="adPlaceholderBottom">
-      <div class="ad-scroll">
-        <div class="ad-scroll-item">Ad Space — Google AdSense</div>
-        <div class="ad-scroll-item">Your ad could appear here</div>
-        <div class="ad-scroll-item">Ads will appear here once your AdSense account is approved</div>
-        <div class="ad-scroll-item">Ad Space — Google AdSense</div>
-        <div class="ad-scroll-item">Your ad could appear here</div>
-        <div class="ad-scroll-item">Ads will appear here once your AdSense account is approved</div>
-      </div>
-    </div>
-  </div>
-
   <!-- Stable PDF.js UMD build -->
   <script src="https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
@@ -601,22 +484,6 @@
         document.getElementById('page-' + tab.dataset.page).classList.add('active');
       };
     });
-
-    // ================================================================
-    //  AD PLACEHOLDER VISIBILITY
-    //  Hides the scrolling placeholder text once real ads load.
-    // ================================================================
-    (function hideAdPlaceholders(){
-      setTimeout(() => {
-        document.querySelectorAll('.ad-banner').forEach(banner => {
-          const ins = banner.querySelector('ins.adsbygoogle');
-          if (ins && ins.children.length > 0) {
-            const ph = banner.querySelector('.ad-placeholder');
-            if (ph) ph.style.display = 'none';
-          }
-        });
-      }, 3000);
-    })();
 
     // ================================================================
     //  SPEED READER (unchanged logic)
