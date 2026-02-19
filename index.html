@@ -45,6 +45,25 @@
     margin:18px 0;
   }
 
+  /* ── Site header ── */
+  .site-header{
+    text-align:center;
+    padding:16px 0 20px;
+    border-bottom:1px solid var(--border);
+    margin-bottom:14px;
+  }
+  .site-header .site-title{
+    font-size:30px;
+    font-weight:800;
+    letter-spacing:-0.5px;
+    margin:0 0 7px;
+  }
+  .site-header .site-tagline{
+    font-size:13px;
+    color:var(--muted);
+    margin:0;
+  }
+
   /* ── Navigation tabs ── */
   .nav{
     display:flex;
@@ -314,6 +333,12 @@
   <!-- ═══ MAIN APP ═══ -->
   <div class="app">
 
+    <!-- Site header -->
+    <div class="site-header">
+      <div class="site-title"><span class="red">Speed</span>Reader</div>
+      <div class="site-tagline">SpeedReader improves your focus, reading speed, and retention. Start today and read smarter.</div>
+    </div>
+
     <!-- Navigation -->
     <div class="nav">
       <button class="nav-tab active" data-page="speedreader" type="button">SpeedReader</button>
@@ -476,8 +501,32 @@
     const navTabs = document.querySelectorAll('.nav-tab');
     const pages = document.querySelectorAll('.page');
 
+    function pauseActiveReader() {
+      // Pause SpeedReader if it is playing
+      if (typeof playing !== 'undefined' && playing) {
+        stop();
+      }
+      // Pause VoiceReader if it is speaking and not already paused
+      if (typeof vrIsSpeaking !== 'undefined' && vrIsSpeaking && !vrIsPaused) {
+        speechSynthesis.pause();
+        vrIsPaused = true;
+        vrPauseResumeBtn.textContent = "Resume";
+        vrPlayBtn.textContent = "Paused";
+      }
+      // Pause ComboReader if it is speaking and not already paused
+      if (typeof crIsSpeaking !== 'undefined' && crIsSpeaking && !crIsPaused) {
+        speechSynthesis.cancel();
+        if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
+        crIsPaused = true;
+        crPausedAtWord = crWordIdx;
+        crPauseResumeBtn.textContent = "Resume";
+        crPlayBtn.textContent = "Paused";
+      }
+    }
+
     navTabs.forEach(tab => {
       tab.onclick = () => {
+        pauseActiveReader();
         navTabs.forEach(t => t.classList.remove('active'));
         pages.forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
