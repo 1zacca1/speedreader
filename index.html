@@ -476,8 +476,32 @@
     const navTabs = document.querySelectorAll('.nav-tab');
     const pages = document.querySelectorAll('.page');
 
+    function pauseActiveReader() {
+      // Pause SpeedReader if it is playing
+      if (typeof playing !== 'undefined' && playing) {
+        stop();
+      }
+      // Pause VoiceReader if it is speaking and not already paused
+      if (typeof vrIsSpeaking !== 'undefined' && vrIsSpeaking && !vrIsPaused) {
+        speechSynthesis.pause();
+        vrIsPaused = true;
+        vrPauseResumeBtn.textContent = "Resume";
+        vrPlayBtn.textContent = "Paused";
+      }
+      // Pause ComboReader if it is speaking and not already paused
+      if (typeof crIsSpeaking !== 'undefined' && crIsSpeaking && !crIsPaused) {
+        speechSynthesis.cancel();
+        if (crWordTimer) { clearTimeout(crWordTimer); crWordTimer = null; }
+        crIsPaused = true;
+        crPausedAtWord = crWordIdx;
+        crPauseResumeBtn.textContent = "Resume";
+        crPlayBtn.textContent = "Paused";
+      }
+    }
+
     navTabs.forEach(tab => {
       tab.onclick = () => {
+        pauseActiveReader();
         navTabs.forEach(t => t.classList.remove('active'));
         pages.forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
