@@ -6,18 +6,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="SpeedReader — Upload a PDF and speed-read, listen with text-to-speech, or combine both. Free, private, runs entirely in your browser.">
 <meta name="theme-color" content="#0a0a0a">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0a0a'/><text x='4' y='46' font-family='system-ui,sans-serif' font-weight='900' font-style='italic' font-size='42'><tspan fill='%23b89840'>S</tspan><tspan fill='%23ede8dc'>R</tspan></text></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230a0a0a'/><text x='4' y='46' font-family='system-ui,sans-serif' font-weight='900' font-style='italic' font-size='42'><tspan fill='%23d63031'>S</tspan><tspan fill='%23f0f0f0'>R</tspan></text></svg>">
 
 <style>
   :root {
     --bg: #0a0a0a;
     --surface: #0f0f0f;
-    --text: #ede8dc;
-    --muted: #4a453e;
-    --gold: #b89840;
-    --gold-dim: rgba(184,152,64,0.10);
-    --gold-border: rgba(184,152,64,0.22);
-    --border: rgba(255,255,255,0.06);
+    --text: #f0f0f0;
+    --muted: #484848;
+    --red: #d63031;
+    --red-dim: rgba(214,48,49,0.10);
+    --red-border: rgba(214,48,49,0.25);
+    --border: rgba(255,255,255,0.07);
   }
 
   *, *::before, *::after { box-sizing: border-box; }
@@ -59,7 +59,7 @@
     margin: 0;
     letter-spacing: 0.2px;
   }
-  .site-title .red { color: var(--gold); }
+  .site-title .red { color: var(--red); }
 
   /* Nav */
   .nav {
@@ -85,7 +85,7 @@
     transition: background 0.15s, color 0.15s;
   }
   .nav-tab:hover { color: var(--text); border: none; }
-  .nav-tab.active { background: var(--gold-dim); color: var(--gold); border: none; }
+  .nav-tab.active { background: var(--red-dim); color: var(--red); border: none; }
 
   /* Page */
   .page { display: none; }
@@ -108,7 +108,7 @@
     user-select: none;
     letter-spacing: 0.3px;
   }
-  .brand .red { color: var(--gold); }
+  .brand .red { color: var(--red); }
 
   .controls {
     display: flex;
@@ -133,33 +133,33 @@
     transition: border-color 0.15s, color 0.15s;
     letter-spacing: 0.2px;
   }
-  button:hover { border-color: var(--gold-border); color: var(--text); }
+  button:hover { border-color: var(--red-border); color: var(--text); }
   button:disabled { opacity: 0.25; cursor: not-allowed; }
 
   .speed button.active {
-    background: var(--gold-dim);
-    border-color: var(--gold-border);
-    color: var(--gold);
+    background: var(--red-dim);
+    border-color: var(--red-border);
+    color: var(--red);
   }
   .primary {
-    background: var(--gold-dim);
-    border-color: var(--gold-border);
-    color: var(--gold);
+    background: var(--red-dim);
+    border-color: var(--red-border);
+    color: var(--red);
   }
 
   /* Drop zone */
   .drop {
-    border: 1px dashed var(--gold-border);
+    border: 1px dashed var(--red-border);
     border-radius: 6px;
     padding: 22px;
     text-align: center;
     cursor: pointer;
     transition: border-color 0.15s;
   }
-  .drop:hover { border-color: var(--gold); }
+  .drop:hover { border-color: var(--red); }
   .drop .t { font-weight: 600; font-size: 14px; color: var(--text); }
   .drop .s { margin-top: 4px; font-size: 12px; color: var(--muted); }
-  .drop .fn { margin-top: 6px; font-size: 11px; color: var(--gold); word-break: break-word; }
+  .drop .fn { margin-top: 6px; font-size: 11px; color: var(--red); word-break: break-word; }
 
   /* Word reader box */
   .reader {
@@ -177,7 +177,7 @@
     position: absolute;
     width: 1px;
     height: 100px;
-    background: rgba(184,152,64,0.12);
+    background: rgba(214,48,49,0.12);
     border-radius: 999px;
   }
   .word {
@@ -188,7 +188,7 @@
     padding: 0 10px;
     user-select: none;
   }
-  .orp { color: var(--gold); }
+  .orp { color: var(--red); }
 
   /* Status line */
   .status {
@@ -259,7 +259,7 @@
     color: var(--text);
   }
   .vr-text-area .spoken { color: var(--muted); }
-  .vr-text-area .current-word { color: var(--gold); font-weight: 700; }
+  .vr-text-area .current-word { color: var(--red); font-weight: 700; }
   .vr-text-area .empty-msg { color: var(--muted); font-style: italic; }
 
   .vr-progress {
@@ -279,7 +279,7 @@
   }
   .vr-progress-fill {
     height: 100%;
-    background: var(--gold);
+    background: var(--red);
     border-radius: 1px;
     transition: width 0.3s;
     width: 0%;
